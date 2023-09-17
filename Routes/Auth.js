@@ -20,6 +20,10 @@ router.get('/test', async (req, res) => {
   res.json({ message: 'Auth api working fine' });
 });
 
+function createResponse(ok, message, data) {
+  return ok, message, data;
+}
+
 router.post('/sendotp', async (req, res) => {
   const { email } = req.body;
   const otp = Math.floor(100000 + Math.random() * 900000);
@@ -34,15 +38,9 @@ router.post('/sendotp', async (req, res) => {
     transporter.sendMail(mailOptions, async (err, info) => {
       if (err) {
         console.log(err);
-        res.status(500).json({
-          message: err.message,
-        });
+        res.status(500).json(false, err.message);
       } else {
-        // console.log(otp);
-        res.json({
-          message: 'OTP sent successfully',
-          otp: otp,
-        });
+        res.json(createResponse(true, 'OTP sent successfully', { otp }));
       }
     });
   } catch (err) {
@@ -57,9 +55,9 @@ router.post('/register', async (req, res, next) => {
     const existingUser = await User.findOne({ email: email });
 
     if (existingUser) {
-      return res.status(200).json({
-        message: 'Email already exists',
-      });
+      return res
+        .status(200)
+        .json(createResponse(false, 'Email Already Exists'));
     }
 
     const newUser = new User({
@@ -70,7 +68,7 @@ router.post('/register', async (req, res, next) => {
 
     await newUser.save();
 
-    res.status(201).json({ message: 'User Registered Successfully' });
+    res.status(201).json(createResponse(true, 'User registered successfully'));
   } catch (err) {
     next(err);
   }
@@ -83,13 +81,13 @@ router.post('/login', async (req, res, next) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return res.status(400).json(createResponse(false, 'Invalid Credentials'));
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid Credentials' });
+      return res.status(400).json(createResponse(false, 'Invalid Credentials'));
     }
 
     const authToken = jwt.sign(
@@ -111,7 +109,12 @@ router.post('/login', async (req, res, next) => {
     res.cookie('authToken', authToken, { httpOnly: true });
     res.cookie('refreshToken', refreshToken, { httpOnly: true });
 
-    res.status(200).json({ message: 'Login Successfully' });
+    res.status(200).json(
+      createResponse(true, 'Login Successfully', {
+        authToken,
+        refreshToken,
+      })
+    );
   } catch (err) {
     next(err);
   }

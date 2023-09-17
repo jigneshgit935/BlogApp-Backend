@@ -6,7 +6,7 @@ function errorHandler(err, req, res, next) {
   }
   console.log('ERROR MIDDLEWARE CALLED');
   res.status(500).json({
-    message: 'Internal server error',
+    ok: false,
     error: err.message,
   });
 }
